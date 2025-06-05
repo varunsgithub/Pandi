@@ -7,7 +7,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
-import java.util.Scanner;
+
 
 
 public class Cit {
@@ -74,7 +74,7 @@ public class Cit {
 
 
     //This is a main function that performs the tokenization and lexical analysis
-    // for the code
+    //for the code
     public static void run(String source) {
         Scanner scanny = new Scanner(source);
         List<Token> tokens = scanny.scanTokens();
