@@ -1,12 +1,10 @@
-package com.craftinginterpreters.cit;
+package com.craftinginterpreters.pandi;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.HashMap;
 
 // Importing the enum class ! (Saves me from writing TokenType.XYZ everywhere in the code :)
-import static com.craftinginterpreters.cit.TokenType.*;
+import static com.craftinginterpreters.pandi.TokenType.*;
 
 //Scanner class to scan the characters and do lexical analysis !
 

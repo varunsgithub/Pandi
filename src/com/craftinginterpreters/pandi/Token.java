@@ -1,4 +1,4 @@
-package com.craftinginterpreters.cit;
+package com.craftinginterpreters.pandi;
 
 
 //This class predominantly is essential towards tracking the Tokens that

@@ -1,4 +1,4 @@
-package com.craftinginterpreters.cit;
+package com.craftinginterpreters.pandi;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -10,7 +10,7 @@ import java.util.List;
 
 
 
-public class Cit {
+public class pandi {
 
     //Public field which is used by the Cit class to check for error handling
     static boolean hadError = false;

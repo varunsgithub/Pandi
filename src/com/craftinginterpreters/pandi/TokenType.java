@@ -1,4 +1,4 @@
-package com.craftinginterpreters.cit;
+package com.craftinginterpreters.pandi;
 
 
 //Enums are fixed variable naming conventions.
@@ -22,7 +22,7 @@ enum TokenType {
     PRINT, RETURN, SUPER, THIS, TRUE, VAR,WHILE,
 
     //Easter egg:
-    VARUN,
+    VARUN, PANDI, KK,
 
     EOF
 }
