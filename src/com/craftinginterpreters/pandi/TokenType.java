@@ -21,8 +21,8 @@ enum TokenType {
     AND, CLASS, ELSE, FALSE, FUN, FOR, IF, NIL, OR,
     PRINT, RETURN, SUPER, THIS, TRUE, VAR,WHILE,
 
-    //Easter egg:
-    VARUN, PANDI, KK,
+    //Easter eggs:
+    VNM,VARUN, PANDI, KK,
 
     EOF
 }
