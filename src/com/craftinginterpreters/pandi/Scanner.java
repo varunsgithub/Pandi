@@ -1,7 +1,9 @@
 package com.craftinginterpreters.pandi;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 // Importing the enum class ! (Saves me from writing TokenType.XYZ everywhere in the code :)
 import static com.craftinginterpreters.pandi.TokenType.*;
@@ -19,7 +21,31 @@ public class Scanner {
     private int current = 0;
     private int line = 1;
 
+    //To check the key identifiers !
+    private static final Map<String, TokenType> keywords;
 
+    static {
+        keywords = new HashMap<>();
+        keywords.put("and", AND);
+        keywords.put("class", CLASS);
+        keywords.put("else", ELSE);
+        keywords.put("for", FOR);
+        keywords.put("false", FALSE);
+        keywords.put("fun", FUN);
+        keywords.put("if", IF);
+        keywords.put("nil", NIL);
+        keywords.put("or", OR);
+        keywords.put("return", RETURN);
+        keywords.put("true", TRUE);
+        keywords.put("print", PRINT);
+        keywords.put("var", VAR);
+        keywords.put("while", WHILE);
+        keywords.put("super", SUPER);
+        keywords.put("this", THIS);
+        keywords.put("varun", VARUN);
+        keywords.put("vnm", VNM);
+        keywords.put("pandi", PANDI);
+    }
 
     //Constructor to initialize the source (String for source code written)
     public Scanner(String source) {
@@ -47,46 +73,80 @@ public class Scanner {
 
         switch (c) {
             case '(':
-                addToken(LEFT_PAREN);break;
+                addToken(LEFT_PAREN);
+                break;
             case ')':
-                addToken(RIGHT_PAREN);break;
+                addToken(RIGHT_PAREN);
+                break;
             case '{':
-                addToken(LEFT_BRACE);break;
+                addToken(LEFT_BRACE);
+                break;
             case '}':
-                addToken(RIGHT_BRACE);break;
+                addToken(RIGHT_BRACE);
+                break;
             case ',':
-                addToken(COMMA);break;
+                addToken(COMMA);
+                break;
             case '.':
-                addToken(DOT);break;
+                addToken(DOT);
+                break;
             case '-':
-                addToken(MINUS);break;
+                addToken(MINUS);
+                break;
             case '+':
-                addToken(PLUS);break;
+                addToken(PLUS);
+                break;
             case ':':
-                addToken(SEMICOLON);break;
+                addToken(SEMICOLON);
+                break;
             case '*':
-                addToken(STAR);break;
+                addToken(STAR);
+                break;
 
             //These are ingeniously designed operators which actually check, if there are two characters or one
             //If there are 2, the code will automatically mark the token as the 2char tok, else just one char tok
             case '!':
-                addToken(match('=') ? BANG_EQUAL:BANG); break;
+                addToken(match('=') ? BANG_EQUAL : BANG);
+                break;
             case '=':
-                addToken(match('=') ? EQUAL_EQUAL:EQUAL); break;
+                addToken(match('=') ? EQUAL_EQUAL : EQUAL);
+                break;
             case '<':
-                addToken(match('=') ? LESS_EQUAL:LESS); break;
+                addToken(match('=') ? LESS_EQUAL : LESS);
+                break;
             case '>':
-                addToken(match('=') ? GREATER_EQUAL:LESS); break;
+                addToken(match('=') ? GREATER_EQUAL : LESS);
+                break;
             case '/':
                 if (match('/')) {
                     //if the next character is a / that means it's a comment
                     // peek to check if you are at end, or you have hit a newline
                     // To read the entire comment.
                     // AND THE POINTER GOES OVER THE ENTIRE COMMENT AND IGNORES IT :)
-                    while (peek() != '\n' && !isAtEnd()) {advance();}
+                    while (peek() != '\n' && !isAtEnd()) {
+                        advance();
+                    }
+                } else if (match('*')) {
+                    // While you do not encounter the next */ you keep advancing
+                    while (peek() != '*' && peekNext() != '/' && !isAtEnd()) {
+
+                        char chary = advance();
+                        if (chary == '\n') {
+                            //Increase the line number on new lines !
+                            line++;
+                        }
+                    }
+                    if (peek() == '*' && peekNext() == '/' && !isAtEnd()) {
+                        advance();
+                        advance();
+                    } else {
+                        pandi.error(line, "Unexpected termination of comment");
+                    }
+
                 } else {
                     addToken(SLASH);
-                } break;
+                }
+                break;
 
             //Just for now the character that doesn't match the given cases are characterised as unexpected.
             // The code keeps scanning the remaining lines to catch more errors, this ensures that all errors are handled.
@@ -101,23 +161,57 @@ public class Scanner {
             // This is how the scanner actually ends up counting the number of lines in the code.
             // IF THE PEEK function reaches at end, a newline is returned which helps increment the line NUMBER !!!!!
             case '\n':
-                line++; break;
+                line++;
+                break;
 
             //String literals
-            case '"': string(); break;
+            case '"':
+                string();
+                break;
 
             default:
                 if (isDigit(c)) {
                     number();
+                } else if (isAlpha(c)) {
+                    //Comes here if the code is a character
+                    //Note that strings are starting with "
+                    identifier();
                 } else {
                 pandi.error(line, "Unexpected character."); break;}
         }
     }
 
-    private void number() {
+    //Used to identify the token
+    private void identifier() {
+        //Keep advancing if the scanned char is a number or a digit.
+        while (isAlphaNumeric(peek())) advance();
 
+        String text = source.substring(start, current);
+        TokenType type = keywords.get(text);
+        if (type == null) {
+            type = IDENTIFIER;
+        }
+
+        //Add the token to IDENTIFIER !
+        addToken(type);
     }
 
+
+    private void number() {
+        //So the program will advance if the next number peeked into is a digit
+        while(isDigit(peek())) advance();
+
+        //The function will peek one character ahead to check for decimals, and 2 charcters forward to check for a digit.
+        //Only then is the fraction recognised !!!!
+        if (peek() == '.' && isDigit(peekNext())) {
+            //consume the .
+            advance();
+
+            while (isDigit(peek())) advance();
+        }
+        //At end -> Just parse the string to a double !
+        addToken(NUMBER, Double.parseDouble(source.substring(start, current)));
+    }
 
 
     private void string() {
@@ -163,6 +257,28 @@ public class Scanner {
         if (isAtEnd()) return '\0';
         return source.charAt(current);
     }
+
+    //Function to see two characters forward:
+    private char peekNext() {
+        //If the current char + 1 leads to reaching end of source, return a new line
+        //Returning a newline -> hits in incrementing the line number in the scan token method.
+        if (current + 1 >= source.length()) return '\0';
+
+        //Else it returns the character at that location.
+        return source.charAt(current + 1);
+    }
+
+    //check the character is either an alphabet (upper or lower case) or an underscore
+    private boolean isAlpha(char c) {
+        return (c >= 'a' && c <= 'z') ||
+                (c >= 'A' && c <= 'Z') ||
+                (c == '_');
+    }
+
+    private boolean isAlphaNumeric(char c) {
+        return isAlpha(c) || isDigit(c);
+    }
+
 
     // Boolean function that checks whether the character read is
     // actually in the range of 0 and 9.

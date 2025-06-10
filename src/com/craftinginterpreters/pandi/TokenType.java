@@ -22,7 +22,7 @@ enum TokenType {
     PRINT, RETURN, SUPER, THIS, TRUE, VAR,WHILE,
 
     //Easter eggs:
-    VNM,VARUN, PANDI, KK,
+    VNM,VARUN, PANDI,
 
     EOF
 }

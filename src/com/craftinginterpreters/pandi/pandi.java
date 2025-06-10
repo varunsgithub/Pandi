@@ -12,13 +12,13 @@ import java.util.List;
 
 public class pandi {
 
-    //Public field which is used by the Cit class to check for error handling
+    //Public field which is used by the pandi class to check for error handling
     static boolean hadError = false;
 
     public static void main(String[] args) throws IOException{
         //This is a check to ensure that only one argument (if you have a file to load and run source code)
         if (args.length > 1) {
-            System.err.print("Usage: Cit[script] - incorrect Args");
+            System.err.print("Usage: pandi[script] - incorrect Args");
             // Exit with error number 64 that is incorrect number of arguments
             System.exit(64);
         }  else if (args.length == 1) {
@@ -29,12 +29,12 @@ public class pandi {
     }
 
 
-    //Cit is a scripting language and can be run using two ways:
+    //pandi is a scripting language and can be run using two ways:
     //Either the source code can be stored in a file and the path to the same can be mentioned
     //Or the prompt can be directly run
 
 
-    //Method for running our cit source code from the path
+    //Method for running our pandi source code from the path
     public static void runFile(String path) throws IOException {
         //Read all binary data in the byte array
         byte[] bytes = Files.readAllBytes(Paths.get(path));
@@ -85,7 +85,7 @@ public class pandi {
         }
     }
 
-    //The error handling method in Cit will point out the specific line
+    //The error handling method in pandi will point out the specific line
     // where the user has encountered an error
     public static void error(int line, String message) {
         report (line, "" , message);
@@ -96,18 +96,4 @@ public class pandi {
         System.err.println ("[line " + line + "] Error" + where + ": " + message + " :(");
         hadError = true;
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 }
