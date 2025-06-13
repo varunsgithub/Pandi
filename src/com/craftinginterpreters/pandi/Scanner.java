@@ -128,7 +128,10 @@ public class Scanner {
                     }
                 } else if (match('*')) {
                     // While you do not encounter the next */ you keep advancing
-                    while (peek() != '*' && peekNext() != '/' && !isAtEnd()) {
+                    // peek next used first to handle the edge case where the user inputs **** as a comment in the
+                    // c style comments
+                    // This ensures that the code does not BOOLEAN SHORT CIRCUIT.
+                    while (peekNext() != '/' && peek() != '/' && !isAtEnd()) {
 
                         char chary = advance();
                         if (chary == '\n') {
@@ -201,7 +204,7 @@ public class Scanner {
         //So the program will advance if the next number peeked into is a digit
         while(isDigit(peek())) advance();
 
-        //The function will peek one character ahead to check for decimals, and 2 charcters forward to check for a digit.
+        //The function will peek one character ahead to check for decimals, and 2 characters forward to check for a digit.
         //Only then is the fraction recognised !!!!
         if (peek() == '.' && isDigit(peekNext())) {
             //consume the .
