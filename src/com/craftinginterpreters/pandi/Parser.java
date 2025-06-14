@@ -5,6 +5,9 @@ import static com.craftinginterpreters.pandi.TokenType.*;
 
 //This class handles parsing.
 public class Parser {
+
+    private static class ParseError extends RuntimeException {}
+
     //The list of tokens that we receive from the scanner !
     private final List<Token> tokens;
     //The tracker for letting us know at what position we are at in parsing the tokens
@@ -13,6 +16,15 @@ public class Parser {
     Parser(List<Token> tokens) {
         this.tokens = tokens;
     }
+
+    Expr parse() {
+        try {
+            return expression();
+        } catch (ParseError error) {
+            return null;
+        }
+    }
+
 
     // The lowest precedence -> expression returns equality
     // Each grammar rule is a method and the body of it can contain either
@@ -100,9 +112,14 @@ public class Parser {
             consume(RIGHT_PAREN, "Expect ')' after expression.");
             return new Expr.Grouping(expr);
         }
+
+        //Each token statement has to reach the primary case method
+        // If it is unable to match any of the primary case then an error is thrown
+        // meaning -> we have reached an unexpected expression.
+        throw error(peek(), "Expect expression.");
+
+
     }
-
-
 
     //The boolean match method will take in a list of
     // token types and check if they match the given types
@@ -115,6 +132,16 @@ public class Parser {
         }
         return false;
     }
+
+    //The consume method will check if the grouping expression has been closed properly and will advance until it
+    // has been closed:
+    private Token consume(TokenType type, String message) {
+        if (check(type)) return advance();
+
+        //if not then throw an error !
+        throw error(peek(), message);
+    }
+
 
     // The check function will check if the token is EOF
     // if not it will check if the next token type is the required type
@@ -146,5 +173,44 @@ public class Parser {
     // Returns the value of the current position - 1
     private Token previous() {
         return tokens.get(current - 1);
+    }
+
+    //returning errors using the pandi's parse error method
+    private ParseError error (Token token, String message) {
+        pandi.error(token, message);
+        return new ParseError();
+    }
+
+    //Synchronization of errors
+    private void synchronize() {
+        //Advance to the next token
+        advance();
+
+        //while you have not reached the end
+        while (!isAtEnd()) {
+            //If the previous token was a semicolon then exit
+            //because you are at the beginning of a new statement line
+            // you can parse from here
+            if (previous().type == SEMICOLON) return;
+
+
+            // in case any of the below are the next token
+            // then return to parsing because hopefully these will not be
+            // error infested
+            switch (peek().type) {
+                case CLASS:
+                case FOR:
+                case FUN:
+                case IF:
+                case PRINT:
+                case RETURN:
+                case VAR:
+                case WHILE:
+                    return;
+            }
+
+            // if none of these match then keep advancing.
+            advance();
+        }
     }
 }

@@ -79,10 +79,13 @@ public class pandi {
         Scanner scanny = new Scanner(source);
         List<Token> tokens = scanny.scanTokens();
 
-        //Placeholder to just print the tokens as of now
-        for (Token tok: tokens) {
-            System.out.println(tok);
-        }
+        Parser parser = new Parser(tokens);
+        Expr expression = parser.parse();
+
+        //if error then stop
+        if (hadError) return;
+
+        System.out.println(new AstPrinter().print(expression));
     }
 
     //The error handling method in pandi will point out the specific line
@@ -96,4 +99,19 @@ public class pandi {
         System.err.println ("[line " + line + "] Error" + where + ": " + message + " :(");
         hadError = true;
     }
+
+    //This is a different error function for reporting errors during the parsing:
+    // It is a wrapper to the report function
+    static void error(Token token, String message) {
+        //Check line position
+        if (token.type == TokenType.EOF) {
+            report (token.line," at end", message);
+        } else {
+            // Report the line and the particular lexeme so caught.
+            report(token.line, " at '" + token.lexeme + "'", message);
+        }
+
+
+    }
+
 }
