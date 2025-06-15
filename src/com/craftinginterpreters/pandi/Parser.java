@@ -88,6 +88,8 @@ public class Parser {
     }
 
     //Unary operations:
+    //This is right associative hence the expression on right is evaluated first
+    //then at the end in the
     private Expr unary() {
         if(match(BANG, MINUS)) {
             Token operator = previous();
