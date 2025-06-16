@@ -11,9 +11,14 @@ import java.util.List;
 
 
 public class pandi {
-
+    //Field for interpreter
+    private static final Interpreter interpreter = new Interpreter();
     //Public field which is used by the pandi class to check for error handling
     static boolean hadError = false;
+    //field to set the runtime error
+    static boolean hadRuntimeError = false;
+
+
 
     public static void main(String[] args) throws IOException{
         //This is a check to ensure that only one argument (if you have a file to load and run source code)
@@ -44,6 +49,9 @@ public class pandi {
         //Indicate error while exiting
         if (hadError) System.exit(65);
 
+        //System exit 70 is "internal software error"
+        if (hadRuntimeError) System.exit(70);
+
     }
 
     //Runs the language one prompt at a time !
@@ -58,7 +66,7 @@ public class pandi {
         //Infinite for loop
         // The conditions are left empty
         for (;;) {
-            System.out.print("> ");
+            System.out.print(":> ");
             //Read a line from the System in
             String line = brry.readLine();
             // checks if EOF (Ctrl + D) is reached in system.in
@@ -82,8 +90,8 @@ public class pandi {
         Parser parser = new Parser(tokens);
         Expr expression = parser.parse();
 
-        //if error then stop
-        if (hadError) return;
+        //Use the interpreter to interpret the expression
+        interpreter.interpret(expression);
 
         System.out.println(new AstPrinter().print(expression));
     }
@@ -93,6 +101,19 @@ public class pandi {
     public static void error(int line, String message) {
         report (line, "" , message);
     }
+
+    //The error reporting class for Runtime errors
+    static void runtimeError(RuntimeError error) {
+        //The moment we typed super in the RuntimeError class
+        // it saved the message that we passed.
+        // This message can then be called by the .getMessage() method
+        // These are java inbuilt methods
+        System.err.println(error.getMessage() + "\n[line " + error.token.line + "]");
+        hadRuntimeError = true;
+    }
+
+
+
 
     //Helper function for the error reporting
     public static void report(int line, String where, String message) {
