@@ -1,5 +1,6 @@
 package com.craftinginterpreters.pandi;
 
+import java.util.ArrayList;
 import java.util.List;
 import static com.craftinginterpreters.pandi.TokenType.*;
 
@@ -17,12 +18,12 @@ public class Parser {
         this.tokens = tokens;
     }
 
-    Expr parse() {
-        try {
-            return expression();
-        } catch (ParseError error) {
-            return null;
+    List<Stmt> parse() {
+        List<Stmt> statements = new ArrayList<>();
+        while (!isAtEnd()) {
+            statements.add(declaration());
         }
+        return statements;
     }
 
 
@@ -33,6 +34,76 @@ public class Parser {
     private Expr expression() {
         return equality();
     }
+
+
+    private Stmt declaration() {
+        try {
+            if (match(VAR)) return varDeclaration();
+            return statement();
+        } catch (ParseError error) {
+            synchronize();
+            return null;
+        }
+    }
+
+
+    private Stmt statement(){
+        //There are two kinds of statements as of now, a print statement
+        // and an expression statement. The expression statement is an expression that ends with a ';'
+        if (match(PRINT)) return printStatement();
+
+        //it returns the method for an expression statement
+        return expressionStatement();
+    }
+
+    private Stmt printStatement() {
+        //The value of the statement is captured using the expression method !
+        // So it creates an AST for the relevant expressions
+        Expr value = expression();
+        //Next it checks if there is an appropriate end to the expression
+        consume(SEMICOLON, "Expected ';' after expression.");
+        // This call is a nested outer class (statement) and an inner class (Print)
+        // So what happens is that the Print object is created with expression as value
+        return new Stmt.Print(value);
+    }
+
+    private Stmt varDeclaration() {
+        //First the variable declaration checks that is there a name for the
+        // variable
+        //(Note in the parser if there is no given category for the token then it is stored as an identifier)
+        Token name = consume(IDENTIFIER, "Expected a variable name.");
+
+        //Then the initializer is stored as null
+        Expr initializer = null;
+
+        //If the next token is an = this means that the variable declaration is done properly and the
+        // next statement is stored in the initializer
+        if (match(EQUAL)) {
+            //Initializer calls the expression method which does the entire recursive descent parsing
+            initializer = expression();
+        }
+
+        //The semi colon checks are placed so that the variable declaration is taken care of
+        consume(SEMICOLON, "Expected ';' after variable declaration.");
+
+        //Returns a new statement AST for the given variable declaration.
+        return new Stmt.Var(name, initializer);
+    }
+
+
+    private Stmt expressionStatement() {
+        //The value of the statement is captured using the expression method
+        Expr expr = expression();
+
+        //The last token in the list of tokens after scanning should be a semi colon
+        // If this is not the case then we throw an error
+        consume(SEMICOLON, "Expected ';' after expression.");
+
+        //This calls the stmt class and the static class inside the stmt class
+        // and creates an AST for the expression !
+        return new Stmt.Expression(expr);
+    }
+
 
     //
     private Expr equality() {
@@ -109,6 +180,13 @@ public class Parser {
             return new Expr.Literal(previous().literal);
         }
 
+        //if the token is a string, which does not get scanned as a proper token, it gets identified as an IDENTIFIER
+        // If it is an identifier, then it gets treated as an Variable EXPRESSION.
+        if (match(IDENTIFIER)) {
+            return new Expr.Variable(previous());
+        }
+
+
         if (match(LEFT_PAREN)) {
             Expr expr = expression();
             consume(RIGHT_PAREN, "Expect ')' after expression.");
@@ -120,12 +198,11 @@ public class Parser {
         // meaning -> we have reached an unexpected expression.
         throw error(peek(), "Expect expression.");
 
-
     }
 
     //The boolean match method will take in a list of
     // token types and check if they match the given types
-    private boolean match(TokenType... types) {
+    private boolean match (TokenType... types) {
         for (TokenType type : types) {
             if (check(type)) {
                 advance();
@@ -137,7 +214,7 @@ public class Parser {
 
     //The consume method will check if the grouping expression has been closed properly and will advance until it
     // has been closed:
-    private Token consume(TokenType type, String message) {
+    private Token consume (TokenType type, String message) {
         if (check(type)) return advance();
 
         //if not then throw an error !

@@ -1,11 +1,16 @@
 package com.craftinginterpreters.pandi;
 
-public class Interpreter implements Expr.Visitor<Object> {
+
+import java.util.List;
+
+// Statements do not produce any values so they return Void
+// Java does not allow returning lowercase void objects.... so we use Void
+public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
 
     @Override
     public Object visitLiteralExpr(Expr.Literal expr) {
-        //The value forst got scanned by the scanner and stored in a token
+        //The value first got scanned by the scanner and stored in a token
         // Once the parser realised that these are literal values, it got saved to
         // the expr.literal :)
         return expr.value;
@@ -25,6 +30,30 @@ public class Interpreter implements Expr.Visitor<Object> {
         return expr.accept(this);
     }
 
+    //*******
+    private void execute(Stmt stmt) {
+        stmt.accept(this);
+    }
+
+
+    //*******
+    @Override
+    public Void visitExpressionStmt(Stmt.Expression stmt) {
+        //The statement is evaluated basis the expression but the return value is discarded
+        evaluate(stmt.expression);
+        // A null is returned
+        return null;
+    }
+
+
+    //*******
+    @Override
+    public Void visitPrintStmt(Stmt.Print stmt) {
+        Object value = evaluate(stmt.expression);
+        System.out.println(stringify(value));
+        return null;
+    }
+
 
     //The visit binary expression is helpful to evaluate binary expressions
     // it checks where of what instances the left and right objects are and performs the necessary
@@ -33,6 +62,9 @@ public class Interpreter implements Expr.Visitor<Object> {
     public Object visitBinaryExpr(Expr.Binary expr) {
         Object left = evaluate(expr.left);
         Object right = evaluate(expr.right);
+
+        //The parser gets hold of all the type error checks whereas the interpreter catches
+        // all the runtime errors
 
         switch (expr.operator.type) {
             case GREATER:
@@ -91,7 +123,7 @@ public class Interpreter implements Expr.Visitor<Object> {
         Object right = evaluate(expr.right);
 
         //check if the operator is either ! or -
-        switch(expr.operator.type) {
+        switch (expr.operator.type) {
             case BANG:
                 return !isTruthy(right);
             case MINUS:
@@ -143,13 +175,11 @@ public class Interpreter implements Expr.Visitor<Object> {
 
 
     //This is a wrapper around the entire interpreter class to prevent exposing the internal methods
-    void interpret(Expr expr) {
+    void interpret(List<Stmt> statements) {
         try{
-            //This method takes in the expression which has been parsed (AST)
-            // If the object gets evaluated, it returns the value which is stored in a variable of the same name
-            // and the same is printed out to the user as a string
-            Object value = evaluate(expr);
-            System.out.println(stringify(value));
+            for (Stmt statement : statements) {
+                execute(statement);
+            }
         } catch (RuntimeError error) {
             pandi.runtimeError(error);
         }

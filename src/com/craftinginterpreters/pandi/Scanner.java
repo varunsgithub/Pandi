@@ -96,7 +96,7 @@ public class Scanner {
             case '+':
                 addToken(PLUS);
                 break;
-            case ':':
+            case ';':
                 addToken(SEMICOLON);
                 break;
             case '*':

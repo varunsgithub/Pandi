@@ -21,7 +21,15 @@ public class GenerateAst {
            "Binary   : Expr left, Token operator, Expr right",
            "Grouping : Expr expression",
            "Literal  : Object value",
-           "Unary    : Token operator, Expr right"
+           "Unary    : Token operator, Expr right",
+           "Variable : Token name"
+        ));
+
+        //For parsing statements.
+        defineAst(outputDir, "Stmt", Arrays.asList(
+                "Expression : Expr expression",
+                "Print      : Expr expression ",
+                "Var        : Token name, Expr initializer"
         ));
 
     }
@@ -76,8 +84,6 @@ public class GenerateAst {
     }
 
 
-
-
     private static void defineType ( PrintWriter writer, String baseName, String className, String fieldList){
 
         writer.println("    static class " + className + " extends " + baseName + " {");
@@ -111,7 +117,4 @@ public class GenerateAst {
 
         writer.println("}");
     }
-
-
-
 }

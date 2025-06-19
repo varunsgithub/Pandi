@@ -9,7 +9,6 @@ import java.nio.file.Paths;
 import java.util.List;
 
 
-
 public class pandi {
     //Field for interpreter
     private static final Interpreter interpreter = new Interpreter();
@@ -66,7 +65,7 @@ public class pandi {
         //Infinite for loop
         // The conditions are left empty
         for (;;) {
-            System.out.print(":> ");
+            System.out.print("^._.^: ");
             //Read a line from the System in
             String line = brry.readLine();
             // checks if EOF (Ctrl + D) is reached in system.in
@@ -88,12 +87,14 @@ public class pandi {
         List<Token> tokens = scanny.scanTokens();
 
         Parser parser = new Parser(tokens);
-        Expr expression = parser.parse();
+        List<Stmt> statements = parser.parse();
+
+        if (hadError) return;
 
         //Use the interpreter to interpret the expression
-        interpreter.interpret(expression);
+        interpreter.interpret(statements);
 
-        System.out.println(new AstPrinter().print(expression));
+//        System.out.println(new AstPrinter().print(expression));
     }
 
     //The error handling method in pandi will point out the specific line
@@ -112,9 +113,6 @@ public class pandi {
         hadRuntimeError = true;
     }
 
-
-
-
     //Helper function for the error reporting
     public static void report(int line, String where, String message) {
         System.err.println ("[line " + line + "] Error" + where + ": " + message + " :(");
@@ -131,8 +129,6 @@ public class pandi {
             // Report the line and the particular lexeme so caught.
             report(token.line, " at '" + token.lexeme + "'", message);
         }
-
-
     }
 
 }
