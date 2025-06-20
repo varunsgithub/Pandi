@@ -32,7 +32,7 @@ public class Parser {
     // a terminal (some action being performed) or a non-terminal (reference to a different rule)
     // the expression has equality referenced which is a non-terminal.
     private Expr expression() {
-        return equality();
+        return assignment();
     }
 
 
@@ -103,6 +103,32 @@ public class Parser {
         // and creates an AST for the expression !
         return new Stmt.Expression(expr);
     }
+
+    // Note that since the assignment operator is right associative
+    // we end up doing a recursion only after the = sign
+    private Expr assignment() {
+        //We start with going down the tree for the l value
+        Expr expr = equality();
+
+        //If the next token is EQUAL
+        if (match(EQUAL)) {
+            //So the token is stored....
+            Token equals = previous();
+            //The value to be assigned (r value) is stored in a diff expr
+            Expr value = assignment();
+
+            //If the l value is an instance of variable
+            if (expr instanceof Expr.Variable) {
+                //if the expr was a variable assignment
+                //cast the expression token and store its name
+                Token name = ((Expr.Variable)expr).name;
+                return new Expr.Assign(name, value);
+            }
+            error (equals, "Invalid assignment target.");
+        }
+        return expr;
+    }
+
 
 
     //

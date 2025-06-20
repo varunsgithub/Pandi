@@ -7,6 +7,7 @@ import java.util.List;
 // Java does not allow returning lowercase void objects.... so we use Void
 public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
+    private Environment environment = new Environment();
 
     @Override
     public Object visitLiteralExpr(Expr.Literal expr) {
@@ -30,13 +31,13 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         return expr.accept(this);
     }
 
-    //*******
+
     private void execute(Stmt stmt) {
         stmt.accept(this);
     }
 
 
-    //*******
+
     @Override
     public Void visitExpressionStmt(Stmt.Expression stmt) {
         //The statement is evaluated basis the expression but the return value is discarded
@@ -46,13 +47,38 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
 
 
-    //*******
+
     @Override
     public Void visitPrintStmt(Stmt.Print stmt) {
         Object value = evaluate(stmt.expression);
         System.out.println(stringify(value));
         return null;
     }
+
+    //The visit variable statement method helps identify the variable statements
+    @Override
+    public Void visitVarStmt(Stmt.Var stmt) {
+        //The object value is stored as null initially
+        Object value = null;
+        //If the statement initializer is not null
+        if (stmt.initializer != null) {
+            //Start with evaluating the value of the initializer
+            value = evaluate(stmt.initializer);
+        }
+        //After the value has been evaluated, store teh value in the environment hashmap
+        //in case the variable does not have any assignment yet, the variable is just stored as null
+        //eg: var varun;.... will be stored as null
+        environment.define(stmt.name.lexeme, value);
+        return null;
+    }
+
+    @Override
+    public Object visitAssignExpr(Expr.Assign expr) {
+        Object value = evaluate(expr.value);
+        environment.assign(expr.name, value);
+        return value;
+    }
+
 
 
     //The visit binary expression is helpful to evaluate binary expressions
@@ -132,6 +158,12 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         }
         //unreachable -> but safety checks
         return null;
+    }
+
+    //This method just
+    @Override
+    public Object visitVariableExpr(Expr.Variable expr) {
+        return environment.get(expr.name);
     }
 
 
