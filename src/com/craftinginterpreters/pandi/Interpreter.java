@@ -7,6 +7,7 @@ import java.util.List;
 // Java does not allow returning lowercase void objects.... so we use Void
 public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
+    //This is the outermost environment variable with enclosing = null
     private Environment environment = new Environment();
 
     @Override
@@ -34,6 +35,33 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     private void execute(Stmt stmt) {
         stmt.accept(this);
+    }
+
+    @Override
+    public Void visitBlockStmt(Stmt.Block stmt) {
+        //When the code calls a visit block statement, it creates a
+        // new environment so that environment's enclosing is linked to
+        // the interpreter's enclosing (so it is linked to global)
+        // which in turn is linked to null
+
+        //So this is the new environment created for the block
+        executeBlock(stmt.statements, new Environment(environment));
+        return null;
+    }
+
+
+    void executeBlock(List<Stmt> statements,
+                      Environment environment) {
+        Environment previous = this.environment;
+        try {
+            this.environment = environment;
+
+            for (Stmt statement : statements) {
+                execute(statement);
+            }
+        } finally {
+            this.environment = previous;
+        }
     }
 
 

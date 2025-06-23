@@ -47,10 +47,13 @@ public class Parser {
     }
 
 
-    private Stmt statement(){
+    private Stmt statement() {
         //There are two kinds of statements as of now, a print statement
         // and an expression statement. The expression statement is an expression that ends with a ';'
         if (match(PRINT)) return printStatement();
+
+        //If the statement matches the likes of a block, then we have encountered a block statement
+        if (match(LEFT_BRACE)) {return new Stmt.Block(block());}
 
         //it returns the method for an expression statement
         return expressionStatement();
@@ -83,7 +86,7 @@ public class Parser {
             initializer = expression();
         }
 
-        //The semi colon checks are placed so that the variable declaration is taken care of
+        //The semi-colon checks are placed so that the variable declaration is taken care of
         consume(SEMICOLON, "Expected ';' after variable declaration.");
 
         //Returns a new statement AST for the given variable declaration.
@@ -103,6 +106,26 @@ public class Parser {
         // and creates an AST for the expression !
         return new Stmt.Expression(expr);
     }
+
+    //The statement now flows into a block check as well
+    private List<Stmt> block() {
+        //In the list of statements that one gets as per the block
+        List<Stmt> statements = new ArrayList<>();
+
+        // Check if we have not reached the right brace & we are not at end
+        // Why we do this is because we assume the user knows where to stop the right brace
+        // so we keep scanning until we reach the end.
+        while (!check(RIGHT_BRACE) && !isAtEnd()) {
+            //Run the declaration command to check if it is a statement or a variable declaration
+            statements.add(declaration());
+        }
+
+        //Once the check is reached (there is a right brace) or we are at end
+        consume(RIGHT_BRACE, "Expect '}' after block.");
+        //Return the list of ASTs... :)
+        return statements;
+    }
+
 
     // Note that since the assignment operator is right associative
     // we end up doing a recursion only after the = sign
