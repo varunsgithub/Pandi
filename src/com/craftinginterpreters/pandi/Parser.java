@@ -48,6 +48,8 @@ public class Parser {
 
 
     private Stmt statement() {
+        if (match(IF)) return ifStatement();
+
         //There are two kinds of statements as of now, a print statement
         // and an expression statement. The expression statement is an expression that ends with a ';'
         if (match(PRINT)) return printStatement();
@@ -57,6 +59,22 @@ public class Parser {
 
         //it returns the method for an expression statement
         return expressionStatement();
+    }
+
+    private Stmt ifStatement() {
+        consume(LEFT_PAREN, "Expect '(' after 'if'");
+        Expr condition = expression();
+        consume(RIGHT_PAREN, "Expect ')' after 'if' condition.");
+
+        Stmt thenBranch = statement();
+
+        Stmt elseBranch = null;
+
+        if (match(ELSE)) {
+            elseBranch = statement();
+        }
+
+        return new Stmt.If(condition, thenBranch, elseBranch);
     }
 
     private Stmt printStatement() {
