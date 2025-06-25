@@ -1,5 +1,6 @@
 package com.craftinginterpreters.pandi;
 
+import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.List;
 import static com.craftinginterpreters.pandi.TokenType.*;
@@ -48,11 +49,17 @@ public class Parser {
 
 
     private Stmt statement() {
+        //For statements do not have a separate
+        if (match(FOR)) return forStatement();
+
         if (match(IF)) return ifStatement();
 
         //There are two kinds of statements as of now, a print statement
         // and an expression statement. The expression statement is an expression that ends with a ';'
         if (match(PRINT)) return printStatement();
+
+        //Checks for while statement
+        if (match(WHILE)) return whileStatement();
 
         //If the statement matches the likes of a block, then we have encountered a block statement
         if (match(LEFT_BRACE)) {return new Stmt.Block(block());}
@@ -60,6 +67,60 @@ public class Parser {
         //it returns the method for an expression statement
         return expressionStatement();
     }
+
+    private Stmt forStatement() {
+        consume(LEFT_PAREN, "Expect '(' after 'for'.");
+
+        //An initial statement intializer is created
+        // for (Var i = 0;)
+        Stmt initializer;
+        //if the first token is a semicolon, then the initializer has been skipped.
+        if (match(SEMICOLON)) {
+            initializer = null;
+        } else if (match(VAR)) {
+            //if it is VAR then a new variable is declared
+            initializer = varDeclaration();
+        } else {
+            //else an expression statement is used !
+            initializer = expressionStatement();
+        }
+
+        //next the condition is checked... if the next token is
+        // not a semicolon, then get the condition
+        Expr condition = null;
+        if (!check(SEMICOLON)) {
+            condition = expression();
+        }
+        //If there is a semicolon w/o a condition or vice versa -> report an error
+        consume(SEMICOLON, "Expect ';' after loop condition.");
+
+        //final incrementor !
+        Expr increment = null;
+        if (!check(RIGHT_PAREN)) {
+            increment = expression();
+        }
+        consume(RIGHT_PAREN, "Expect ')' after for clauses.");
+
+        Stmt body = statement();
+
+        if (increment != null) {
+            body = new Stmt.Block(
+                    Arrays.asList(body,
+                            new Stmt.Expression(increment))
+            );
+        }
+
+        if (condition == null) condition = new Expr.Literal(true);
+        body = new Stmt.While(condition, body);
+
+        if (initializer != null) {
+            body = new Stmt.Block(Arrays.asList(initializer, body));
+        }
+
+        return body;
+    }
+
+
 
     private Stmt ifStatement() {
         consume(LEFT_PAREN, "Expect '(' after 'if'");
@@ -104,11 +165,25 @@ public class Parser {
             initializer = expression();
         }
 
-        //The semi-colon checks are placed so that the variable declaration is taken care of
+        //The semicolon checks are placed so that the variable declaration is taken care of
         consume(SEMICOLON, "Expected ';' after variable declaration.");
 
         //Returns a new statement AST for the given variable declaration.
         return new Stmt.Var(name, initializer);
+    }
+
+    //If there is a while statement
+    private Stmt whileStatement() {
+        // Consume the left parenthesis.
+        consume(LEFT_PAREN, "Expect '(' after 'while'");
+        // Next the condition is evaluated using the expression.
+        Expr condition = expression();
+        // the token for right parenthesis is evaluated
+        consume(RIGHT_PAREN, "Expect ')' after condition.");
+        // The ast is created for the body
+        Stmt body = statement();
+        //return the ast for the condition and the body.
+        return new Stmt.While(condition, body);
     }
 
 
@@ -149,9 +224,10 @@ public class Parser {
     // we end up doing a recursion only after the = sign
     private Expr assignment() {
         //We start with going down the tree for the l value
-        Expr expr = equality();
+        Expr expr = or();
 
         //If the next token is EQUAL
+        //(Note that there can only be 1 equal statement in a single line of code, hence we have an if statement)
         if (match(EQUAL)) {
             //So the token is stored....
             Token equals = previous();
@@ -166,6 +242,40 @@ public class Parser {
                 return new Expr.Assign(name, value);
             }
             error (equals, "Invalid assignment target.");
+        }
+        return expr;
+    }
+
+
+    private Expr or() {
+        //First goto and() and get the l value
+        Expr expr = and();
+
+        // While the next statement is an OR (can have multiple)
+        // get the operator
+        while (match(OR)) {
+            Token operator = previous();
+            Expr right = and();
+            expr = new Expr.Logical(expr, operator, right);
+        }
+        //Return the AST if it matches !!
+        return expr;
+    }
+
+    //This is the logical operator AND...
+    // Helps in short circuits
+    private Expr and() {
+        //Get the l value first.
+        Expr expr = equality();
+
+        //While there are multiple AND operators...
+        while (match(AND)) {
+            //The operator is the previous
+            Token operator = previous();
+            //The right expression is taken up
+            Expr right = equality();
+            // a new syntax tree is created and returned
+            expr = new Expr.Logical(expr, operator, right);
         }
         return expr;
     }

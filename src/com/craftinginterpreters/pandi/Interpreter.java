@@ -18,6 +18,25 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         return expr.value;
     }
 
+    @Override
+    public Object visitLogicalExpr(Expr.Logical expr) {
+        //Check the left object
+        Object left = evaluate(expr.left);
+
+        // This is a short-circuiting technique
+        // The expression on the left is always checked first for the true/ false values
+        // in a OR/ AND situation.
+        if (expr.operator.type == TokenType.OR) {
+            if (isTruthy(left)) {return left;}
+        } else {
+            if (!isTruthy(left)) {return left;}
+        }
+        //Return the evaluated right statement
+        //Because if the short circuit didn't work then definitely the answer
+        // lies in the right statement.
+        return evaluate(expr.right);
+    }
+
 
     @Override
     public Object visitGroupingExpr(Expr.Grouping expr) {
@@ -85,7 +104,6 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
 
 
-
     @Override
     public Void visitPrintStmt(Stmt.Print stmt) {
         Object value = evaluate(stmt.expression);
@@ -109,6 +127,17 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         environment.define(stmt.name.lexeme, value);
         return null;
     }
+
+    @Override
+    public Void visitWhileStmt(Stmt.While stmt) {
+        //While the condition statement is true
+        while (isTruthy(evaluate(stmt.condition))) {
+            //Execute the statement's body
+            execute(stmt.body);
+        }
+        return null;
+    }
+
 
     @Override
     public Object visitAssignExpr(Expr.Assign expr) {
@@ -268,5 +297,4 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         }
         return object.toString();
     }
-
 }
