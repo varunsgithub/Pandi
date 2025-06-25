@@ -69,6 +69,7 @@ public class Parser {
     }
 
     private Stmt forStatement() {
+        //Consume the left parenthesis after the For
         consume(LEFT_PAREN, "Expect '(' after 'for'.");
 
         //An initial statement intializer is created
@@ -89,6 +90,7 @@ public class Parser {
         // not a semicolon, then get the condition
         Expr condition = null;
         if (!check(SEMICOLON)) {
+            //Save the condition
             condition = expression();
         }
         //If there is a semicolon w/o a condition or vice versa -> report an error
@@ -97,12 +99,18 @@ public class Parser {
         //final incrementor !
         Expr increment = null;
         if (!check(RIGHT_PAREN)) {
+            // if there is no right parenthesis !
             increment = expression();
         }
+        //after saving the expression or not finding a right paren
         consume(RIGHT_PAREN, "Expect ')' after for clauses.");
 
+        //next the body is saved
         Stmt body = statement();
 
+
+        //If the increment variable is not null then the body is created
+        // as a block statement, that has a list of statements
         if (increment != null) {
             body = new Stmt.Block(
                     Arrays.asList(body,
@@ -110,9 +118,12 @@ public class Parser {
             );
         }
 
+        //if the condition is null then the literal expression is saved as true
+        // a new while condition si created
         if (condition == null) condition = new Expr.Literal(true);
         body = new Stmt.While(condition, body);
 
+        //if the initializer is not null then a new body is created with a block statement.
         if (initializer != null) {
             body = new Stmt.Block(Arrays.asList(initializer, body));
         }
