@@ -66,6 +66,7 @@ public class Parser {
 
         //it returns the method for an expression statement
         return expressionStatement();
+
     }
 
     private Stmt forStatement() {
