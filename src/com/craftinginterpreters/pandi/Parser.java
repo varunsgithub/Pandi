@@ -39,6 +39,7 @@ public class Parser {
 
     private Stmt declaration() {
         try {
+            if (match(FUN)) return function("function");
             if (match(VAR)) return varDeclaration();
             return statement();
         } catch (ParseError error) {
@@ -57,6 +58,9 @@ public class Parser {
         //There are two kinds of statements as of now, a print statement
         // and an expression statement. The expression statement is an expression that ends with a ';'
         if (match(PRINT)) return printStatement();
+
+        //Checks for a return statement
+        if (match(RETURN)) return returnStatement();
 
         //Checks for while statement
         if (match(WHILE)) return whileStatement();
@@ -161,6 +165,27 @@ public class Parser {
         return new Stmt.Print(value);
     }
 
+    private Stmt returnStatement() {
+        //Save the previous token as a keyword
+        Token keyword = previous();
+        //The value of the expression is saved as null
+        Expr value = null;
+
+        //If one has not reached the semicolon yet
+        if(!check(SEMICOLON)) {
+            //The value is saved (Recursive descent parsing)
+            value = expression();
+        }
+        consume(SEMICOLON, "Expect ';' after return value.");
+
+        //In case there is no value after the return statement a null value is returned
+        // This is the case where the user wants to perform an early exit in the code.
+
+        return new Stmt.Return(keyword, value);
+    }
+
+
+
     private Stmt varDeclaration() {
         //First the variable declaration checks that is there a name for the
         // variable
@@ -211,6 +236,39 @@ public class Parser {
         // and creates an AST for the expression !
         return new Stmt.Expression(expr);
     }
+
+    private Stmt.Function function(String kind) {
+        //if the next token after the word fun is not an identifier
+        // this code will just display the message saying that it expected the
+        // name function !!!!
+        Token name = consume(IDENTIFIER, "Expect " + kind + "name");
+
+        //When you discover a function consume the next token which has to be a (
+        consume(LEFT_PAREN, "Expect '(' after " + kind + "name.");
+        //create a list of parameters
+        List<Token> parameters = new ArrayList<>();
+        if (!check(RIGHT_PAREN)) {
+            do{
+                //Check the parameters size (just in case if it exceeds 254)
+                if (parameters.size() >= 255) {
+                    error(peek(), "Can't have more than 255 parameters.");
+                }
+                parameters.add(
+                        consume(IDENTIFIER, "Expect parameter name"));
+            //Keep going while there is a comma
+            } while (match(COMMA));
+        }
+        consume(RIGHT_PAREN, "Expect ')' after parameters.");
+
+        //Consume the left BRACE after the arguments (here you reach the body)
+        consume(LEFT_BRACE, "Expect '{' before " + kind +"body");
+        //The body is given a new Environment and the scope changes with block
+        List<Stmt> body = block();
+        //Returns the new AST for the function as a statement.
+        return new Stmt.Function(name, parameters, body);
+    }
+
+
 
     //The statement now flows into a block check as well
     private List<Stmt> block() {
@@ -347,9 +405,9 @@ public class Parser {
         return expr;
     }
 
-    //Unary operations:
-    //This is right associative hence the expression on right is evaluated first
-    //then at the end in the
+    // Unary operations:
+    // This is right associative hence the expression on right is evaluated first
+    // then at the end in the
     private Expr unary() {
         if(match(BANG, MINUS)) {
             Token operator = previous();
@@ -357,14 +415,41 @@ public class Parser {
             return new Expr.Unary(operator, right);
         }
         //Now unary does not jump to primary...
+        // Since function calls are right associtive as well
         return call();
     }
 
+    private Expr finishCall(Expr callee) {
+        //The list of arguments are created as an array list !
+        List<Expr> arguments = new ArrayList<>();
+        // If the next token is not a right parenthesis
+        if (!check(RIGHT_PAREN)) {
+            do {
+                if (arguments.size() >= 255) {
+                    error(peek(), "Can't have more than 255 arguments.");
+                }
+
+
+                //Add the AST for the expression in the arraylist
+                arguments.add(expression());
+            } while (match(COMMA));
+        }
+
+        Token paren = consume (RIGHT_PAREN, "Expect ')' after arguments.");
+
+        return new Expr.Call(callee, paren, arguments);
+    }
+
+
     private Expr call() {
+        // First if the code has arrived from unary it goes to primary to evaluate the
+        // expression
         Expr expr = primary();
 
         while (true) {
+            // If the next token matches (
             if (match(LEFT_PAREN)) {
+                // The expression is then assigned to the finish call method
                 expr = finishCall(expr);
             } else {
                 break;

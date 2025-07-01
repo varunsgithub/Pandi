@@ -1,6 +1,6 @@
 package com.craftinginterpreters.pandi;
 
-
+import java.util.ArrayList;
 import java.util.List;
 
 // Statements do not produce any values so they return Void
@@ -8,7 +8,56 @@ import java.util.List;
 public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     //This is the outermost environment variable with enclosing = null
-    private Environment environment = new Environment();
+    final Environment globals = new Environment();
+    private Environment environment = globals;
+
+    Interpreter() {
+        //So we define a global function called the clock where the function returns the
+        // current time (This is a callable native function that we have defined)
+        globals.define("clock", new pandiCallable() {
+            @Override
+            public int arity() {
+                return 0;
+            }
+
+            @Override
+            public Object call(Interpreter interpreter, List<Object> arguments) {
+                return (double)System.currentTimeMillis() / 1000;
+            }
+
+            @Override
+            public String toString() {
+                return "<native fn>";
+            }
+        });
+
+        //*** FUNCTION TO PRINT PANDI LOL****//
+        globals.define("PANDI", new pandiCallable() {
+
+
+            @Override
+            public int arity() {
+                return 0;
+            }
+
+            @Override
+            public Object call(Interpreter interpreter, List<Object> arguments) {
+                return """
+                                                    ╱|、
+                                                  (˚ˎ 。7 \s
+                                                   |、˜〵         \s
+                                                   じしˍ,)ノ\
+                        """ + "\n meoowwww";
+            }
+
+            @Override
+            public String toString() {
+                return "";
+            }
+        });
+
+    }
+
 
     @Override
     public Object visitLiteralExpr(Expr.Literal expr) {
@@ -73,8 +122,10 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
                       Environment environment) {
         Environment previous = this.environment;
         try {
+            // The interpreter's current environment is switched to the Block's environment
             this.environment = environment;
 
+            // For each statement -> it is executed in that environment !
             for (Stmt statement : statements) {
                 execute(statement);
             }
@@ -94,6 +145,17 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
 
     @Override
+    public Void visitFunctionStmt(Stmt.Function stmt) {
+        //A new function is created
+        pandiFunction function = new pandiFunction(stmt);
+        //The name of the function is etched in the environment's memory
+        environment.define(stmt.name.lexeme, function);
+        //A null is returned.
+        return null;
+    }
+
+
+    @Override
     public Void visitIfStmt (Stmt.If stmt) {
         if (isTruthy(evaluate(stmt.condition))) {
             execute(stmt.thenBranch);
@@ -110,6 +172,20 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         System.out.println(stringify(value));
         return null;
     }
+
+    @Override
+    public Void visitReturnStmt(Stmt.Return stmt) {
+        Object value = null;
+
+        if(stmt.value != null) {
+            value = evaluate(stmt.value);
+        }
+
+        throw new Return(value);
+    }
+
+
+
 
     //The visit variable statement method helps identify the variable statements
     @Override
@@ -207,6 +283,42 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
         return null;
     }
+
+    @Override
+    public Object visitCallExpr(Expr.Call expr) {
+        //The callee is an object
+        // which is evaluated by the interpreter
+        Object callee = evaluate(expr.callee);
+
+        //A new arraylist is created to hold the arguments
+        List<Object> arguments = new ArrayList<>();
+
+        //for all the arguments parsed by the parser
+        for (Expr argument : expr.arguments) {
+            //add the evaluated values to the interpreter's args list
+            arguments.add(evaluate(argument));
+        }
+
+        //If the callee happens to be an instance of pandiCallable
+        if (!(callee instanceof pandiCallable)) {
+            // if not then the interpreter is sent into panic mode
+            throw new RuntimeError(expr.paren, "Can only call functions and classes");
+        }
+
+        //once all the arguments have been analysed the callee is cast to a pandiCallable function
+        pandiCallable function = (pandiCallable) callee;
+
+        //Arity checks
+        if (arguments.size() != function.arity()) {
+            throw new RuntimeError(expr.paren, "Expected "+function.arity()+" arguments but got"
+            + arguments.size()+" .");
+        }
+
+        //and a function call is returned
+        // this will also be used to call classes (****Since classes are also called)!!!
+        return function.call(this, arguments);
+    }
+
 
 
     @Override
