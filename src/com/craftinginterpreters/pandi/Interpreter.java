@@ -12,7 +12,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     private Environment environment = globals;
 
     Interpreter() {
-        //So we define a global function called the clock where the function returns the
+        // So we define a global function called the clock where the function returns the
         // current time (This is a callable native function that we have defined)
         globals.define("clock", new pandiCallable() {
             @Override
@@ -146,11 +146,11 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     @Override
     public Void visitFunctionStmt(Stmt.Function stmt) {
-        //A new function is created
-        pandiFunction function = new pandiFunction(stmt);
-        //The name of the function is etched in the environment's memory
+        // A new function is created
+        pandiFunction function = new pandiFunction(stmt, environment);
+        // The name of the function is etched in the environment's memory
         environment.define(stmt.name.lexeme, function);
-        //A null is returned.
+        // A null is returned.
         return null;
     }
 

@@ -5,9 +5,14 @@ import java.util.List;
 
 public class pandiFunction implements pandiCallable {
     private final Stmt.Function declaration;
+    //This is used to hold onto the variables declared in an enclosing environment
+    // This is the environment that is active when the function is DECLARED and not when it is called
+    private final Environment closure;
 
 
-    pandiFunction(Stmt.Function declaration) {
+    pandiFunction(Stmt.Function declaration, Environment closure) {
+
+        this.closure = closure;
         this.declaration = declaration;
     }
 
@@ -20,8 +25,8 @@ public class pandiFunction implements pandiCallable {
 
     @Override
     public Object call(Interpreter interpreter, List<Object> arguments) {
-        //The function's environment is tagged to the outermost global environment of the interpreter
-        Environment environment = new Environment(interpreter.globals);
+        //The function's environment is tagged to the environment that calls it when it was declared.
+        Environment environment = new Environment(closure);
 
         for (int i = 0; i < declaration.params.size(); i++) {
             //In that environment define the name of the parameters and the arguments.
