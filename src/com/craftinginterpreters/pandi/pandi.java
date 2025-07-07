@@ -91,6 +91,12 @@ public class pandi {
 
         if (hadError) return;
 
+        Resolver resolver = new Resolver(interpreter);
+        resolver.resolve(statements);
+
+        //Stop if there is a resolution error
+        if (hadError) return;
+
         //Use the interpreter to interpret the expression
         interpreter.interpret(statements);
 

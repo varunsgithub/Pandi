@@ -67,4 +67,27 @@ public class Environment {
         // Now the moment you redefine the variable -> it will replace the variable !!!
         values.put(name, value);
     }
+
+    Object getAt(int distance, String name) {
+        return ancestor(distance).values.get(name);
+    }
+
+    Environment ancestor(int distance) {
+        Environment environment = this;
+
+        //First reach the current environment
+        for (int i = 0; i < distance; i++) {
+            //Then as you know the distance from the current keep
+            // looping inside that environment
+            environment = environment.enclosing;
+        }
+
+        //Return that environment
+        return environment;
+    }
+
+    void assignAt(int distance, Token name, Object value) {
+        ancestor(distance).values.put(name.lexeme, value);
+    }
+
 }

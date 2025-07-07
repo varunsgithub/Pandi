@@ -11,13 +11,18 @@ public class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     private final Interpreter interpreter;
     // stack of scopes:
     // It has the lexeme of the token and a boolean value -
-    // the boolean value stores ... the
+    // the boolean value stores ... ??
     private final Stack<Map<String, Boolean>> scopes = new Stack<>();
-
+    private FunctionType currentFunction = FunctionType.NONE;
 
     // The constructor initialises the interpreter variable
     Resolver(Interpreter interpreter) {
         this.interpreter = interpreter;
+    }
+
+    private enum FunctionType {
+        NONE,
+        FUNCTION
     }
 
     // as of now the only variables that need to be checked for static analysis are:
@@ -27,15 +32,65 @@ public class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     // Assignment expressions and variable expressions since they need to have the variables resolved
 
 
+    // By implementing the visit block statement we have completely changed what the visitor actually does
     @Override
     public Void visitBlockStmt(Stmt.Block stmt) {
         //Create an environment on the stack
+        // Blocks are either created for if/else/or while/ for and functions
         beginScope();
         //Visit and evaluate the expression/ statement
         resolve(stmt.statements);
         //exit the environment
         endScope();
 
+        return null;
+    }
+
+    @Override
+    public Void visitExpressionStmt(Stmt.Expression stmt) {
+        resolve(stmt.expression);
+        return null;
+    }
+
+    @Override
+    public Void visitFunctionStmt(Stmt.Function stmt) {
+        //Declare the name (which is in the outer scope)
+        declare(stmt.name);
+        //
+        define(stmt.name);
+        //
+        resolveFunction(stmt, FunctionType.FUNCTION);
+
+        return null;
+    }
+
+
+    //Runs both the branches (different from dynamic runs)
+    @Override
+    public Void visitIfStmt(Stmt.If stmt) {
+        resolve(stmt.condition);
+        resolve(stmt.thenBranch);
+        if (stmt.elseBranch != null) {
+            resolve(stmt.elseBranch);
+        }
+        return null;
+    }
+
+    @Override
+    public Void visitPrintStmt(Stmt.Print stmt) {
+        resolve(stmt.expression);
+        return null;
+    }
+
+    @Override
+    public Void visitReturnStmt(Stmt.Return stmt) {
+        if (currentFunction == FunctionType.NONE) {
+            pandi.error(stmt.keyword, "Cant return from top level code");
+        }
+
+        if(stmt.value != null) {
+            resolve(stmt.value);
+        }
         return null;
     }
 
@@ -56,6 +111,70 @@ public class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
         return null;
     }
 
+
+    @Override
+    public Void visitWhileStmt(Stmt.While stmt) {
+        resolve(stmt.condition);
+        resolve(stmt.body);
+        return null;
+    }
+
+
+    @Override
+    public Void visitAssignExpr(Expr.Assign expr) {
+        resolve(expr.value);
+        resolveLocal(expr, expr.name);
+        return null;
+    }
+
+
+    @Override
+    public Void visitBinaryExpr(Expr.Binary expr) {
+        resolve(expr.left);
+        resolve(expr.right);
+        return null;
+    }
+
+
+    @Override
+    public Void visitCallExpr(Expr.Call expr) {
+        resolve(expr.callee);
+
+        for (Expr argument : expr.arguments) {
+            resolve(argument);
+        }
+
+        return null;
+    }
+
+    @Override
+    public Void visitGroupingExpr(Expr.Grouping expr) {
+        resolve(expr.expression);
+        return null;
+    }
+
+
+    @Override
+    public Void visitLiteralExpr(Expr.Literal expr) {
+        return null;
+    }
+
+
+    @Override
+    public Void visitLogicalExpr(Expr.Logical expr) {
+        resolve(expr.left);
+        resolve(expr.right);
+        return null;
+    }
+
+
+    @Override
+    public Void visitUnaryExpr(Expr.Unary expr) {
+        resolve(expr.right);
+        return null;
+    }
+
+
     @Override
     public Void visitVariableExpr(Expr.Variable expr) {
         if (!scopes.isEmpty() && scopes.peek().get(expr.name.lexeme) == Boolean.FALSE) {
@@ -72,6 +191,24 @@ public class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
             resolve(statement);
         }
     }
+
+    private void resolveFunction(Stmt.Function function, FunctionType type) {
+        FunctionType enclosingFunction = currentFunction;
+        currentFunction = type;
+
+
+        beginScope();
+        for (Token param : function.params) {
+            declare(param);
+            define(param);
+        }
+        resolve(function.body);
+        endScope();
+
+        currentFunction = enclosingFunction;
+    }
+
+
 
     //A resolve method which accepts the statement
     private void resolve(Stmt stmt) {
@@ -101,6 +238,11 @@ public class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
 
         //Else find the innermost scope and declare the variable in it
         Map<String, Boolean> scope = scopes.peek();
+        if (scope.containsKey(name.lexeme)) {
+            pandi.error(name,
+                    "Already a variable with this name in this scope maccha.");
+        }
+
         //and mark it as unresolved "false"
         scope.put(name.lexeme, false);
     }
