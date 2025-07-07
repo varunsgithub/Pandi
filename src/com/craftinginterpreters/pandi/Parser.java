@@ -39,6 +39,7 @@ public class Parser {
 
     private Stmt declaration() {
         try {
+            if (match(CLASS)) return classDeclaration();
             if (match(FUN)) return function("function");
             if (match(VAR)) return varDeclaration();
             return statement();
@@ -47,6 +48,29 @@ public class Parser {
             return null;
         }
     }
+
+    private Stmt classDeclaration() {
+        //So the first token has to be an identifier, which is the name of the class
+        Token name = consume(IDENTIFIER, "Expect class name");
+        //Consume the left brace first
+        consume(LEFT_BRACE, "Expect '{' before class body.");
+
+        //we create a new array list to store the methods declared
+        List<Stmt.Function> methods = new ArrayList<>();
+        //While we have not reached the end of the token list and the class has not been closed
+        // with a }
+        while(!check(RIGHT_BRACE) && !isAtEnd()) {
+            //This will add the function tree to the list
+            //Function -> Block -> return
+            methods.add(function("method"));
+        }
+        //There should be a right brace after the class body to end the class
+        consume(RIGHT_BRACE, "Expect '}' after class body.");
+
+        return new Stmt.Class(name, methods);
+    }
+
+
 
 
     private Stmt statement() {

@@ -50,7 +50,8 @@ public class Environment {
             return;
         }
 
-        //same logic as get
+        // keep checking which environment has the key with that name
+        // and assign the value to that environment
         if (enclosing != null) {
             enclosing.assign(name, value);
             return;

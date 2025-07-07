@@ -124,6 +124,21 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         return null;
     }
 
+    @Override
+    public Void visitClassStmt(Stmt.Class stmt) {
+        // The class gets defined in the global scope
+        // the environment then goes and adds the class name in its hashmap
+        environment.define(stmt.name.lexeme, null);
+
+        //Then we create a class instance of pandi class to store the name,
+        pandiClass klass = new pandiClass(stmt.name.lexeme);
+
+        // and by calling the assign function we end up storing the class object that we created
+        // into the hashmap
+        environment.assign(stmt.name, klass);
+
+        return null;
+    }
 
     void executeBlock(List<Stmt> statements,
                       Environment environment) {
