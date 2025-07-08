@@ -334,9 +334,17 @@ public class Parser {
                 //cast the expression token and store its name
                 Token name = ((Expr.Variable)expr).name;
                 return new Expr.Assign(name, value);
+            } else if (expr instanceof Expr.Get) {
+                // We check if the previous parsed expression is an instance of
+                // the Expr.GET... (from Call())
+                Expr.Get get = (Expr.Get)expr;
+                // if it is then we create a new AST for the set expression.
+                return new Expr.Set(get.object, get.name, value);
             }
+
             error (equals, "Invalid assignment target.");
         }
+
         return expr;
     }
 
@@ -468,6 +476,7 @@ public class Parser {
     private Expr call() {
         // First if the code has arrived from unary it goes to primary to evaluate the
         // expression
+        // The call method essentially creates the AST basis the () and .
         Expr expr = primary();
 
         while (true) {
@@ -475,7 +484,13 @@ public class Parser {
             if (match(LEFT_PAREN)) {
                 // The expression is then assigned to the finish call method
                 expr = finishCall(expr);
-            } else {
+            } else if (match(DOT)) {
+                //Match the dot -> if it is an identifier after the dot then
+                Token name = consume(IDENTIFIER, "Expect property name after '.'");
+                //the expression is a new Get expression tree !
+                expr = new Expr.Get(expr, name);
+            }
+            else {
                 break;
             }
         }

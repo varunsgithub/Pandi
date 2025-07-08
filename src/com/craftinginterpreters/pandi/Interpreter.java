@@ -89,6 +89,27 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         return evaluate(expr.right);
     }
 
+    @Override
+    public Object visitSetExpr(Expr.Set expr) {
+        //Evaluate the left hand side of the AST (object = value)
+        Object object = evaluate(expr.object);
+
+        //if object is not an instance of the callable class
+        if (!(object instanceof pandiInstance)) {
+            //throw a runtime error
+            throw new RuntimeError(expr.name, "only instances have fields");
+        }
+
+        //evaluate the r value (the object)
+        Object value = evaluate(expr.value);
+        //set the value for the pandi instance
+        ((pandiInstance)object).set(expr.name, value);
+        //return the value
+        return value;
+    }
+
+
+
 
     @Override
     public Object visitGroupingExpr(Expr.Grouping expr) {
@@ -131,7 +152,13 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         environment.define(stmt.name.lexeme, null);
 
         //Then we create a class instance of pandi class to store the name,
-        pandiClass klass = new pandiClass(stmt.name.lexeme);
+        Map<String, pandiFunction> methods = new HashMap<>();
+        for (Stmt.Function method : stmt.methods) {
+            pandiFunction function = new pandiFunction(method, environment);
+            methods.put(method.name.lexeme, function);
+        }
+        pandiClass klass = new pandiClass(stmt.name.lexeme, methods);
+
 
         // and by calling the assign function we end up storing the class object that we created
         // into the hashmap
@@ -347,6 +374,21 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         //and a function call is returned
         // this will also be used to call classes (****Since classes are also called)!!!
         return function.call(this, arguments);
+    }
+
+    @Override
+    public Object visitGetExpr(Expr.Get expr) {
+        //Evaluate the object to the left of the dot
+        Object object = evaluate(expr.object);
+
+        // if the object is an instance of a class (pandiInstance)
+        if (object instanceof pandiInstance) {
+            //then we call the function to get the object to the right of the dot
+            return ((pandiInstance) object).get(expr.name);
+        }
+
+        throw new RuntimeError(expr.name, "Only instances have properties.");
+
     }
 
 

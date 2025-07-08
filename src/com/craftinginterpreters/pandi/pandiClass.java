@@ -6,10 +6,22 @@ import java.util.Map;
 public class pandiClass implements pandiCallable {
     //The name of the class
     final String name;
+    private final Map<String, pandiFunction> methods;
 
-    pandiClass(String name) {
+    pandiClass(String name, Map<String, pandiFunction> methods) {
         this.name = name;
+        this.methods = methods;
     }
+
+    pandiFunction findMethod(String name) {
+        if (methods.containsKey(name)) {
+            return methods.get(name);
+        }
+
+        return null;
+    }
+
+
 
     @Override
     public String toString() {
