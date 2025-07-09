@@ -108,8 +108,10 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         return value;
     }
 
-
-
+    @Override
+    public Object visitThisExpr(Expr.This expr) {
+        return lookUpVariable(expr.keyword, expr);
+    }
 
     @Override
     public Object visitGroupingExpr(Expr.Grouping expr) {
@@ -154,7 +156,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         //Then we create a class instance of pandi class to store the name,
         Map<String, pandiFunction> methods = new HashMap<>();
         for (Stmt.Function method : stmt.methods) {
-            pandiFunction function = new pandiFunction(method, environment);
+            pandiFunction function = new pandiFunction(method, environment, method.name.lexeme.equals("init"));
             methods.put(method.name.lexeme, function);
         }
         pandiClass klass = new pandiClass(stmt.name.lexeme, methods);
@@ -196,7 +198,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     @Override
     public Void visitFunctionStmt(Stmt.Function stmt) {
         // A new function is created
-        pandiFunction function = new pandiFunction(stmt, environment);
+        pandiFunction function = new pandiFunction(stmt, environment, false );
         // The name of the function is etched in the environment's memory
         environment.define(stmt.name.lexeme, function);
         // A null is returned.

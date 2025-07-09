@@ -507,6 +507,9 @@ public class Parser {
             return new Expr.Literal(previous().literal);
         }
 
+        //If the token matches the keyword THIS -> return AST for this
+        if (match(THIS)) return new Expr.This(previous());
+
         //if the token is a string, which does not get scanned as a proper token, it gets identified as an IDENTIFIER
         // If it is an identifier, then it gets treated as an Variable EXPRESSION.
         if (match(IDENTIFIER)) {

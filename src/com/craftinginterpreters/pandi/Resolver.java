@@ -23,8 +23,16 @@ public class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     private enum FunctionType {
         NONE,
         FUNCTION,
-        METHOD
+        METHOD,
+        INITIALIZER
     }
+
+    private enum ClassType {
+        NONE,
+        CLASS
+    }
+
+    private ClassType currentClass = ClassType.NONE;
 
     // as of now the only variables that need to be checked for static analysis are:
     // Block statements (for analyzing the scope since a new scope is introduced)
@@ -49,16 +57,31 @@ public class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
 
     @Override
     public Void visitClassStmt(Stmt.Class stmt) {
+        ClassType enclosingClass = currentClass;
+        currentClass = ClassType.CLASS;
 
         declare(stmt.name);
 
         define(stmt.name);
 
+        beginScope();
+
+        scopes.peek().put("this",true);
+
         for (Stmt.Function method : stmt.methods) {
             //The declaration is stored as a method
             FunctionType declaration = FunctionType.METHOD;
+
+            if (method.name.lexeme.equals("init")) {
+                declaration = FunctionType.INITIALIZER;
+            }
+
             resolveFunction(method, declaration);
         }
+
+        endScope();
+
+        currentClass = enclosingClass;
 
         return null;
     }
@@ -108,6 +131,9 @@ public class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
         }
 
         if(stmt.value != null) {
+            if (currentFunction == FunctionType.INITIALIZER) {
+                pandi.error(stmt.keyword, "Cant return a value from an initializer");
+            }
             resolve(stmt.value);
         }
         return null;
@@ -198,6 +224,19 @@ public class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
         resolve(expr.value);
         return null;
     }
+
+    @Override
+    public Void visitThisExpr(Expr.This expr) {
+        if (currentClass == ClassType.NONE) {
+            pandi.error(expr.keyword, "Can't use 'this' outside of a class");
+            return null;
+        }
+
+
+        resolveLocal(expr, expr.keyword);
+        return null;
+    }
+
 
 
     @Override

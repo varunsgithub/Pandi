@@ -30,13 +30,24 @@ public class pandiClass implements pandiCallable {
 
     @Override
     public int arity() {
-        return 0;
+        pandiFunction initializer = findMethod("init");
+        if (initializer == null) {return 0;}
+        return initializer.arity();
     }
 
     @Override
     public Object call(Interpreter interpreter, List<Object> arguments) {
         //When the class is called, a new instance of the class is created
         pandiInstance instance = new pandiInstance(this);
+
+        pandiFunction initializer = findMethod("init");
+        if (initializer != null) {
+            //If you find the initializer method declared in the body, then
+            // call the interpreter and arguments.
+            initializer.bind(instance).call(interpreter, arguments);
+        }
+
+
         return instance;
     }
 }

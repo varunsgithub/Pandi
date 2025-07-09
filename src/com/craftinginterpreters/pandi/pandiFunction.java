@@ -9,11 +9,19 @@ public class pandiFunction implements pandiCallable {
     // This is the environment that is active when the function is DECLARED and not when it is called
     private final Environment closure;
 
+    private final boolean isInitializer;
 
-    pandiFunction(Stmt.Function declaration, Environment closure) {
+    pandiFunction(Stmt.Function declaration, Environment closure, boolean isInitializer) {
 
         this.closure = closure;
         this.declaration = declaration;
+        this.isInitializer = isInitializer;
+    }
+
+    pandiFunction bind(pandiInstance instance) {
+        Environment environment = new Environment(closure);
+        environment.define("this", instance);
+        return new pandiFunction(declaration, environment, isInitializer);
     }
 
 
@@ -38,8 +46,15 @@ public class pandiFunction implements pandiCallable {
             //The block (the function) is executed in the given environment.
             interpreter.executeBlock(declaration.body, environment);
         } catch (Return returnValue) {
+            if (isInitializer) {
+                return closure.getAt(0, "this");
+            }
+
             return returnValue.value;
         }
+
+        if (isInitializer) return closure.getAt(0, "this");
+
 
         //This is in case the function does not have a return statement, it returns null by default.
         return null;
