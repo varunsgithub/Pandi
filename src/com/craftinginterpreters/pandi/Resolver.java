@@ -29,7 +29,8 @@ public class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
 
     private enum ClassType {
         NONE,
-        CLASS
+        CLASS,
+        SUBCLASS
     }
 
     private ClassType currentClass = ClassType.NONE;
@@ -64,6 +65,26 @@ public class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
 
         define(stmt.name);
 
+        //Checks for superclass name equal to class name.....
+        if (stmt.superclass != null &&
+                stmt.name.lexeme.equals(stmt.superclass.name.lexeme)) {
+            pandi.error(stmt.superclass.name,
+                    "A class can't inherit from itself.");
+        }
+
+        if (stmt.superclass != null) {
+            currentClass = ClassType.SUBCLASS;
+            resolve(stmt.superclass);
+        }
+
+        //The superclass is treated as a new scope and the value
+        //is put in the map
+        if (stmt.superclass != null) {
+            beginScope();
+            scopes.peek().put("super", true);
+        }
+
+
         beginScope();
 
         scopes.peek().put("this",true);
@@ -80,6 +101,12 @@ public class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
         }
 
         endScope();
+
+        // Once all the methods are resolved and checked we delete the scope of the
+        // superclass too !!
+        if (stmt.superclass != null) {
+            endScope();
+        }
 
         currentClass = enclosingClass;
 
@@ -224,6 +251,24 @@ public class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
         resolve(expr.value);
         return null;
     }
+
+    @Override
+    public Void visitSuperExpr(Expr.Super expr) {
+
+        if (currentClass == ClassType.NONE) {
+            pandi.error(expr.keyword,
+                    "Can't use 'super' outside of a class.");
+        } else if (currentClass != ClassType.SUBCLASS) {
+            pandi.error(expr.keyword,
+                    "Can't use 'super' in a class with no superclass.");
+        }
+
+        resolveLocal(expr, expr.keyword);
+
+        return null;
+    }
+
+
 
     @Override
     public Void visitThisExpr(Expr.This expr) {

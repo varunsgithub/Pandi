@@ -109,6 +109,25 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
 
     @Override
+    public Object visitSuperExpr(Expr.Super expr) {
+        int distance = locals.get(expr);
+        pandiClass superclass = (pandiClass)environment.getAt(
+                distance, "super");
+
+        pandiInstance object = (pandiInstance) environment.getAt(distance - 1, "this");
+
+        pandiFunction method = superclass.findMethod(expr.method.lexeme);
+
+        if (method == null) {
+            throw new RuntimeError(expr.method,
+                    "Undefined property '" + expr.method.lexeme + "'.");
+        }
+
+        return method.bind(object);
+    }
+
+
+    @Override
     public Object visitThisExpr(Expr.This expr) {
         return lookUpVariable(expr.keyword, expr);
     }
@@ -149,9 +168,31 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     @Override
     public Void visitClassStmt(Stmt.Class stmt) {
+        //The object of superclass is first set to null
+        Object superclass = null;
+
+        // if there is a superclass token
+        if (stmt.superclass != null) {
+            //then it is evaluated
+            superclass = evaluate(stmt.superclass);
+
+            //if the superclass is not an instance of the pandiClass then throw a runtime error
+            if (!(superclass instanceof pandiClass)) {
+                throw new RuntimeError(stmt.superclass.name, "Superclass must be a class");
+            }
+        }
+
+
         // The class gets defined in the global scope
         // the environment then goes and adds the class name in its hashmap
         environment.define(stmt.name.lexeme, null);
+
+        if (stmt.superclass != null) {
+
+            environment = new Environment(environment);
+
+            environment.define("super", superclass);
+        }
 
         //Then we create a class instance of pandi class to store the name,
         Map<String, pandiFunction> methods = new HashMap<>();
@@ -159,8 +200,11 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
             pandiFunction function = new pandiFunction(method, environment, method.name.lexeme.equals("init"));
             methods.put(method.name.lexeme, function);
         }
-        pandiClass klass = new pandiClass(stmt.name.lexeme, methods);
+        pandiClass klass = new pandiClass(stmt.name.lexeme,(pandiClass) superclass ,methods);
 
+        if (superclass != null) {
+            environment = environment.enclosing;
+        }
 
         // and by calling the assign function we end up storing the class object that we created
         // into the hashmap

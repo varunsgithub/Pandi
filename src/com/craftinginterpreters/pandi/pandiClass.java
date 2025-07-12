@@ -4,11 +4,13 @@ import java.util.List;
 import java.util.Map;
 
 public class pandiClass implements pandiCallable {
+    final pandiClass superclass;
     //The name of the class
     final String name;
     private final Map<String, pandiFunction> methods;
 
-    pandiClass(String name, Map<String, pandiFunction> methods) {
+    pandiClass(String name, pandiClass superclass ,Map<String, pandiFunction> methods) {
+        this.superclass = superclass;
         this.name = name;
         this.methods = methods;
     }
@@ -16,6 +18,11 @@ public class pandiClass implements pandiCallable {
     pandiFunction findMethod(String name) {
         if (methods.containsKey(name)) {
             return methods.get(name);
+        }
+
+        //This code is used for inheriting methods !
+        if (superclass != null) {
+            return superclass.findMethod(name);
         }
 
         return null;

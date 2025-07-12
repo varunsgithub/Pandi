@@ -52,6 +52,19 @@ public class Parser {
     private Stmt classDeclaration() {
         //So the first token has to be an identifier, which is the name of the class
         Token name = consume(IDENTIFIER, "Expect class name");
+
+        //The expression superclass is first set to null
+        Expr.Variable superclass = null;
+
+        //If there is a < sign
+        if (match(LESS)) {
+            //consume teh superclass next to the sign
+            consume(IDENTIFIER, "Expect superclass name");
+            //set the superclass
+            superclass = new Expr.Variable(previous());
+        }
+
+
         //Consume the left brace first
         consume(LEFT_BRACE, "Expect '{' before class body.");
 
@@ -67,7 +80,7 @@ public class Parser {
         //There should be a right brace after the class body to end the class
         consume(RIGHT_BRACE, "Expect '}' after class body.");
 
-        return new Stmt.Class(name, methods);
+        return new Stmt.Class(name,superclass ,methods);
     }
 
 
@@ -506,6 +519,23 @@ public class Parser {
         if (match(NUMBER, STRING)) {
             return new Expr.Literal(previous().literal);
         }
+
+        if (match(SUPER)) {
+            //The keyword is stored as the previous token
+            Token keyword = previous();
+
+            //The dot after the token is consumed
+            consume(DOT, "Expect '.' after 'super'.");
+
+            //The name of the method is then stored next
+            Token method = consume(IDENTIFIER, "Expect superclass method name.");
+
+            //A new AST is created !!!
+            return new Expr.Super(keyword, method);
+        }
+
+
+
 
         //If the token matches the keyword THIS -> return AST for this
         if (match(THIS)) return new Expr.This(previous());
