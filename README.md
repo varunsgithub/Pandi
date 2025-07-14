@@ -1,2 +1,2 @@
-# Cit
-Programming language Cit
+# Pandi
+Programming language pandi
