@@ -19,7 +19,7 @@ public class pandi {
 
 
 
-    public static void main(String[] args) throws IOException{
+    public static void main(String[] args) throws IOException {
         //This is a check to ensure that only one argument (if you have a file to load and run source code)
         if (args.length > 1) {
             System.err.print("Usage: pandi[script] - incorrect Args");
